@@ -15,6 +15,15 @@
             // Configurar tipo de autenticación
             tableau.authType = tableau.authTypeEnum.none;
             
+            // Si hay datos en sessionStorage, recuperarlos
+            if (tableau.phase === tableau.phaseEnum.interactivePhase) {
+                // Este código se ejecuta cuando el usuario está configurando el conector
+                console.log("Fase interactiva");
+            } else if (tableau.phase === tableau.phaseEnum.gatherDataPhase) {
+                // Este código se ejecuta cuando Tableau está recopilando datos
+                console.log("Fase de recopilación de datos");
+            }
+            
             initCallback();
         };
 
@@ -256,33 +265,35 @@
         }
         
         // Guardar los datos de conexión
-        tableau.connectionData = JSON.stringify({
+        var connectionData = JSON.stringify({
             "apiKey": apiKey,
             "dataType": dataType,
             "codigoMunicipio": codigoMunicipio
         });
         
         // Establecer el nombre de la conexión
-        tableau.connectionName = "Datos AEMET - " + dataType;
+        var connectionName = "Datos AEMET - " + dataType;
         
         // Enviar la conexión a Tableau
+        tableau.connectionName = connectionName;
+        tableau.connectionData = connectionData;
         tableau.submit();
     }
 
-    // Función de inicialización principal
-    function initializeWDC() {
-        console.log('Inicializando WDC');
+    // Cuando el documento esté listo
+    $(document).ready(function() {
+        console.log('Documento listo');
 
-        // Crear el conector
-        var myConnector = createAEMETConnector();
-
-        // Registrar el conector
-        tableau.registerConnector(myConnector);
-
-        // Configurar eventos de la interfaz de usuario
-        $(document).ready(function() {
-            console.log('Documento listo');
-
+        // Crear y registrar el conector solo cuando el documento esté listo
+        if (window.tableau) {
+            console.log('Inicializando WDC');
+            
+            // Crear el conector
+            var myConnector = createAEMETConnector();
+            
+            // Registrar el conector
+            tableau.registerConnector(myConnector);
+            
             // Mostrar/ocultar campo de municipio
             $('#dataType').change(function() {
                 $('#municipioGroup').toggle($(this).val() === 'prediccion');
@@ -290,14 +301,8 @@
             
             // Manejar el envío del formulario
             $("#submitButton").click(handleSubmit);
-        });
-    }
-
-    // Verificar si la biblioteca de Tableau está disponible
-    if (window.tableau && window.tableau.makeConnector) {
-        // Inicializar el conector Web Data Connector
-        initializeWDC();
-    } else {
-        console.error('Tableau Web Data Connector library not loaded');
-    }
+        } else {
+            console.error('Tableau Web Data Connector library not loaded');
+        }
+    });
 })();
