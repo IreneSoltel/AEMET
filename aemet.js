@@ -1,13 +1,16 @@
 (function() {
     'use strict';
 
-    // Función de inicialización del conector
-    function initializeConnector() {
-        // Crear el conector de Tableau
-        var myConnector = tableau.makeConnector();
+    // Crear el conector de Tableau
+    var myConnector = {
+        init: function(initCallback) {
+            console.log("Inicializando conector AEMET");
+            initCallback();
+        },
 
         // Definición del esquema de datos
-        myConnector.getSchema = function(schemaCallback) {
+        getSchema: function(schemaCallback) {
+            console.log("Obteniendo esquema");
             var connectionData = JSON.parse(tableau.connectionData);
             var dataType = connectionData.dataType;
             var tableSchema;
@@ -68,10 +71,10 @@
 
             console.log("Esquema generado:", tableSchema);
             schemaCallback([tableSchema]);
-        };
+        },
 
         // Obtención de datos
-        myConnector.getData = function(table, doneCallback) {
+        getData: function(table, doneCallback) {
             console.log("Iniciando getData");
             
             var connectionData = JSON.parse(tableau.connectionData);
@@ -210,12 +213,24 @@
                     tableau.abortWithError("Error de conexión con la API de AEMET: " + textStatus);
                 }
             });
-        };
+        }
+    };
 
-        // Registro del conector
+    // Registro del conector
+    if (window.tableau && window.tableau.makeConnector) {
         tableau.registerConnector(myConnector);
+    } else {
+        console.error("Tableau Web Data Connector library not loaded");
+    }
 
-        // Eventos de interfaz
+    // Eventos de interfaz
+    $(document).ready(function() {
+        // Mostrar/ocultar campo de municipio
+        $('#dataType').change(function() {
+            $('#municipioGroup').toggle($(this).val() === 'prediccion');
+        });
+
+        // Manejar envío del formulario
         $("#submitButton").click(function() {
             var apiKey = $('#apiKey').val().trim();
             var dataType = $('#dataType').val();
@@ -245,22 +260,5 @@
             // Enviar conexión a Tableau
             tableau.submit();
         });
-    }
-
-    // Inicialización al cargar el documento
-    $(document).ready(function() {
-        // Inicializar Tableau
-        tableau.init({
-            global: true,
-            skipCORSCheck: true
-        });
-
-        // Mostrar/ocultar campo de municipio
-        $('#dataType').change(function() {
-            $('#municipioGroup').toggle($(this).val() === 'prediccion');
-        });
-
-        // Llamar a la función de inicialización
-        initializeConnector();
     });
 })();
