@@ -1,23 +1,22 @@
 (function() {
     'use strict';
 
-    // Log para depuración
-    console.log('Iniciando conector AEMET');
+    // Función principal de inicialización
+    function initializeConnector() {
+        console.log('Inicializando conector AEMET');
 
-    // Crear el conector de Tableau con funciones de depuración
-    var myConnector = {
+        // Crear el conector de Tableau
+        var myConnector = tableau.makeConnector();
+
         // Método de inicialización
-        init: function(initCallback) {
+        myConnector.init = function(initCallback) {
             console.log('Método init() llamado');
-            // Configurar tipo de autenticación
             tableau.authType = tableau.authTypeEnum.none;
-            
-            // Llamar al callback de inicialización
             initCallback();
-        },
+        };
 
         // Definir el esquema de datos
-        getSchema: function(schemaCallback) {
+        myConnector.getSchema = function(schemaCallback) {
             console.log('Método getSchema() llamado');
             
             // Parsear datos de conexión de forma segura
@@ -87,10 +86,10 @@
 
             console.log('Esquema generado:', tableSchema);
             schemaCallback([tableSchema]);
-        },
+        };
 
         // Obtener datos
-        getData: function(table, doneCallback) {
+        myConnector.getData = function(table, doneCallback) {
             console.log('Método getData() llamado');
             
             // Parsear datos de conexión de forma segura
@@ -224,16 +223,14 @@
                     tableau.abortWithError("Error de conexión: " + textStatus);
                 }
             });
-        }
-    };
+        };
 
-    // Registrar el conector
-    if (typeof tableau !== 'undefined' && tableau.makeConnector) {
-        console.log('Registrando conector');
+        // Registrar el conector
         tableau.registerConnector(myConnector);
-    } else {
-        console.error('Tableau no está definido o no tiene el método makeConnector');
     }
+
+    // Llamar a la función de inicialización
+    initializeConnector();
 
     // Eventos de la interfaz de usuario
     $(document).ready(function() {
