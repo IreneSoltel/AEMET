@@ -1,81 +1,76 @@
 (function() {
-    // Inicializar el conector de Tableau
+    // Conector de Tableau para AEMET
     var myConnector = tableau.makeConnector();
 
-    // Definir el esquema de datos
+    // Definición del esquema de datos
     myConnector.getSchema = function(schemaCallback) {
         var connectionData = JSON.parse(tableau.connectionData);
         var dataType = connectionData.dataType;
-        var cols = [];
-        var tableSchema = {};
-        
+        var tableSchema;
+
         // Esquemas para diferentes tipos de datos
         switch(dataType) {
             case "estaciones":
-                cols = [
-                    { id: "indicativo", dataType: tableau.dataTypeEnum.string },
-                    { id: "nombre", dataType: tableau.dataTypeEnum.string },
-                    { id: "provincia", dataType: tableau.dataTypeEnum.string },
-                    { id: "altitud", dataType: tableau.dataTypeEnum.int },
-                    { id: "longitud", dataType: tableau.dataTypeEnum.float },
-                    { id: "latitud", dataType: tableau.dataTypeEnum.float },
-                    { id: "indsinop", dataType: tableau.dataTypeEnum.string }
-                ];
                 tableSchema = {
                     id: "estacionesAEMET",
                     alias: "Estaciones meteorológicas de AEMET",
-                    columns: cols
+                    columns: [
+                        { id: "indicativo", dataType: tableau.dataTypeEnum.string },
+                        { id: "nombre", dataType: tableau.dataTypeEnum.string },
+                        { id: "provincia", dataType: tableau.dataTypeEnum.string },
+                        { id: "altitud", dataType: tableau.dataTypeEnum.int },
+                        { id: "longitud", dataType: tableau.dataTypeEnum.float },
+                        { id: "latitud", dataType: tableau.dataTypeEnum.float },
+                        { id: "indsinop", dataType: tableau.dataTypeEnum.string }
+                    ]
                 };
                 break;
-            
+
             case "prediccion":
-                cols = [
-                    { id: "municipio", dataType: tableau.dataTypeEnum.string },
-                    { id: "provincia", dataType: tableau.dataTypeEnum.string },
-                    { id: "fecha", dataType: tableau.dataTypeEnum.date },
-                    { id: "temperatura_maxima", dataType: tableau.dataTypeEnum.float },
-                    { id: "temperatura_minima", dataType: tableau.dataTypeEnum.float },
-                    { id: "estado_cielo", dataType: tableau.dataTypeEnum.string },
-                    { id: "probabilidad_precipitacion", dataType: tableau.dataTypeEnum.float }
-                ];
                 tableSchema = {
                     id: "prediccionAEMET",
                     alias: "Predicción meteorológica diaria AEMET",
-                    columns: cols
+                    columns: [
+                        { id: "municipio", dataType: tableau.dataTypeEnum.string },
+                        { id: "provincia", dataType: tableau.dataTypeEnum.string },
+                        { id: "fecha", dataType: tableau.dataTypeEnum.date },
+                        { id: "temperatura_maxima", dataType: tableau.dataTypeEnum.float },
+                        { id: "temperatura_minima", dataType: tableau.dataTypeEnum.float },
+                        { id: "estado_cielo", dataType: tableau.dataTypeEnum.string },
+                        { id: "probabilidad_precipitacion", dataType: tableau.dataTypeEnum.float }
+                    ]
                 };
                 break;
-            
+
             case "observacion":
-                cols = [
-                    { id: "idema", dataType: tableau.dataTypeEnum.string },
-                    { id: "estacion", dataType: tableau.dataTypeEnum.string },
-                    { id: "fecha", dataType: tableau.dataTypeEnum.datetime },
-                    { id: "temperatura", dataType: tableau.dataTypeEnum.float },
-                    { id: "precipitacion", dataType: tableau.dataTypeEnum.float },
-                    { id: "humedad_relativa", dataType: tableau.dataTypeEnum.float },
-                    { id: "velocidad_viento", dataType: tableau.dataTypeEnum.float },
-                    { id: "direccion_viento", dataType: tableau.dataTypeEnum.float }
-                ];
                 tableSchema = {
                     id: "observacionAEMET",
                     alias: "Datos de observación AEMET",
-                    columns: cols
+                    columns: [
+                        { id: "idema", dataType: tableau.dataTypeEnum.string },
+                        { id: "estacion", dataType: tableau.dataTypeEnum.string },
+                        { id: "fecha", dataType: tableau.dataTypeEnum.datetime },
+                        { id: "temperatura", dataType: tableau.dataTypeEnum.float },
+                        { id: "precipitacion", dataType: tableau.dataTypeEnum.float },
+                        { id: "humedad_relativa", dataType: tableau.dataTypeEnum.float },
+                        { id: "velocidad_viento", dataType: tableau.dataTypeEnum.float },
+                        { id: "direccion_viento", dataType: tableau.dataTypeEnum.float }
+                    ]
                 };
                 break;
         }
-        
+
         schemaCallback([tableSchema]);
     };
 
-    // Obtener los datos
+    // Obtención de datos
     myConnector.getData = function(table, doneCallback) {
         var connectionData = JSON.parse(tableau.connectionData);
         var apiKey = connectionData.apiKey;
         var dataType = connectionData.dataType;
         var codigoMunicipio = connectionData.codigoMunicipio || "28079";
-        var tableData = [];
         
-        // URLs base para diferentes endpoints
+        // Construcción de URLs
         var baseUrl = "https://opendata.aemet.es/opendata/api";
         var apiUrl = "";
         
@@ -91,7 +86,7 @@
                 break;
         }
         
-        // Proxy CORS (sustituir con tu propio proxy)
+        // Proxy CORS (sustituir con un proxy real)
         var corsProxyUrl = 'https://cors-anywhere.herokuapp.com/';
         var proxyUrl = corsProxyUrl + apiUrl;
         
@@ -110,7 +105,9 @@
                     var proxyDatosUrl = corsProxyUrl + datosUrl;
                     
                     $.getJSON(proxyDatosUrl, function(data) {
-                        // Lógica de procesamiento de datos
+                        var tableData = [];
+                        
+                        // Procesamiento de datos según tipo
                         switch(dataType) {
                             case "estaciones":
                                 tableData = data.map(function(item) {
@@ -138,4 +135,86 @@
                                                 "temperatura_maxima": dia.temperatura && dia.temperatura.maxima ? parseFloat(dia.temperatura.maxima) : null,
                                                 "temperatura_minima": dia.temperatura && dia.temperatura.minima ? parseFloat(dia.temperatura.minima) : null,
                                                 "estado_cielo": dia.estadoCielo && dia.estadoCielo.length > 0 ? dia.estadoCielo[0].descripcion : "",
-                                                "probabilidad_precipitacion": dia.probP
+                                                "probabilidad_precipitacion": dia.probPrecipitacion && dia.probPrecipitacion.length > 0 ? parseFloat(dia.probPrecipitacion[0].value) : 0
+                                            };
+                                        });
+                                    }
+                                }
+                                break;
+                            
+                            case "observacion":
+                                tableData = data.map(function(item) {
+                                    return {
+                                        "idema": item.idema || "",
+                                        "estacion": item.ubi || "",
+                                        "fecha": item.fint || "",
+                                        "temperatura": parseFloat(item.ta) || null,
+                                        "precipitacion": parseFloat(item.prec) || 0,
+                                        "humedad_relativa": parseFloat(item.hr) || null,
+                                        "velocidad_viento": parseFloat(item.vv) || null,
+                                        "direccion_viento": parseFloat(item.dv) || null
+                                    };
+                                });
+                                break;
+                        }
+                        
+                        table.appendRows(tableData);
+                        doneCallback();
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        tableau.abortWithError("Error al obtener datos de AEMET: " + textStatus);
+                    });
+                } else {
+                    tableau.abortWithError("Error en la respuesta de la API de AEMET");
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                tableau.abortWithError("Error de conexión con la API de AEMET: " + textStatus);
+            }
+        });
+    };
+
+    // Registro del conector
+    tableau.registerConnector(myConnector);
+
+    // Inicialización de la interfaz
+    $(document).ready(function() {
+        // Inicializar Tableau
+        tableau.init();
+
+        // Mostrar/ocultar campo de municipio
+        $('#dataType').change(function() {
+            $('#municipioGroup').toggle($(this).val() === 'prediccion');
+        });
+        
+        // Manejar envío del formulario
+        $("#submitButton").click(function() {
+            var apiKey = $('#apiKey').val().trim();
+            var dataType = $('#dataType').val();
+            var codigoMunicipio = $('#codigoMunicipio').val().trim();
+            
+            // Validaciones
+            if (!apiKey) {
+                alert("Por favor, introduce una API Key válida de AEMET");
+                return;
+            }
+            
+            if (dataType === 'prediccion' && !codigoMunicipio) {
+                alert("Para predicciones, debes introducir un código de municipio");
+                return;
+            }
+            
+            // Guardar datos de conexión
+            tableau.connectionData = JSON.stringify({
+                "apiKey": apiKey,
+                "dataType": dataType,
+                "codigoMunicipio": codigoMunicipio
+            });
+            
+            // Nombre de la conexión
+            tableau.connectionName = "Datos AEMET - " + dataType;
+            
+            // Enviar conexión a Tableau
+            tableau.submit();
+        });
+    });
+})();
