@@ -273,9 +273,6 @@
     function initializeWDC() {
         console.log('Inicializando WDC');
 
-        // Inicializar Tableau
-        tableau.init();
-
         // Crear el conector
         var myConnector = createAEMETConnector();
 
