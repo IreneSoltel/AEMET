@@ -75,7 +75,7 @@
         schemaCallback([tableSchema]);
     };
 
-    // Obtener los datos de AEMET
+    // Obtener los datos de AEMET a través del proxy
     myConnector.getData = function(table, doneCallback) {
         var connectionData;
         try {
@@ -105,31 +105,30 @@
         
         console.log("URL de la API:", apiUrl);
         
-        // Primera petición para obtener la URL de los datos
+        // URL del proxy con los parámetros necesarios
+        var proxyUrl = "https://tidy-forested-berry.glitch.me/aemet-proxy?url=" + encodeURIComponent(apiUrl) + "&apiKey=" + encodeURIComponent(apiKey);
+        
+        // Primera petición para obtener la URL de los datos a través del proxy
         $.ajax({
-            url: apiUrl,
+            url: proxyUrl,
             type: "GET",
             dataType: "json",
-            headers: {
-                "api_key": apiKey
-            },
             success: function(resp) {
-                console.log("Respuesta inicial:", resp);
+                console.log("Respuesta inicial a través del proxy:", resp);
                 
                 if (resp.estado === 200 && resp.datos) {
                     // URL de los datos reales
                     var datosUrl = resp.datos;
                     
-                    // Segunda petición para obtener los datos
+                    // Segunda petición para obtener los datos a través del proxy
+                    var proxyDatosUrl = "https://tidy-forested-berry.glitch.me/aemet-proxy?url=" + encodeURIComponent(datosUrl) + "&apiKey=" + encodeURIComponent(apiKey);
+                    
                     $.ajax({
-                        url: datosUrl,
+                        url: proxyDatosUrl,
                         type: "GET",
                         dataType: "json",
-                        headers: {
-                            "api_key": apiKey
-                        },
                         success: function(data) {
-                            console.log("Datos recibidos (muestra):", 
+                            console.log("Datos recibidos a través del proxy (muestra):", 
                                 Array.isArray(data) && data.length > 2 ? data.slice(0, 2) : data);
                             
                             if (dataType === "estaciones") {
@@ -210,13 +209,7 @@
                 console.error("Respuesta:", jqXHR.responseText);
                 
                 // Mostrar un mensaje más descriptivo
-                var errorMsg = "Error al conectar con la API AEMET (" + jqXHR.status + "): " + textStatus;
-                if (jqXHR.status === 0) {
-                    errorMsg += ". Error CORS - ejecuta Tableau Desktop en modo Debug con -DDebugWDC.";
-                } else if (jqXHR.status === 401 || jqXHR.status === 403) {
-                    errorMsg += ". Problema de autenticación - verifica tu API key.";
-                }
-                
+                var errorMsg = "Error al conectar con el proxy: " + textStatus;
                 tableau.abortWithError(errorMsg);
             }
         });
@@ -225,38 +218,7 @@
     // Registrar el conector con Tableau
     tableau.registerConnector(myConnector);
     
-    // Función para manejar el envío del formulario
-    function handleSubmit() {
-        var apiKey = $('#apiKey').val().trim();
-        var dataType = $('#dataType').val();
-        var codigoMunicipio = $('#codigoMunicipio').val().trim();
-        
-        // Validaciones
-        if (!apiKey) {
-            alert("Por favor, introduce una API Key válida de AEMET");
-            return;
-        }
-        
-        if (dataType === 'prediccion' && !codigoMunicipio) {
-            alert("Para predicciones, debes introducir un código de municipio");
-            return;
-        }
-        
-        // Guardar datos de conexión
-        tableau.connectionData = JSON.stringify({
-            "apiKey": apiKey,
-            "dataType": dataType,
-            "codigoMunicipio": codigoMunicipio
-        });
-        
-        // Establecer nombre de conexión
-        tableau.connectionName = "Datos AEMET - " + dataType;
-        
-        // Enviar
-        tableau.submit();
-    }
-    
-    // Configurar eventos cuando el documento esté listo
+    // Cuando el documento esté listo
     $(document).ready(function() {
         // Mostrar/ocultar campo de municipio según el tipo de datos
         $('#dataType').change(function() {
@@ -267,6 +229,34 @@
         $('#municipioGroup').toggle($('#dataType').val() === 'prediccion');
         
         // Manejar el envío del formulario
-        $("#submitButton").click(handleSubmit);
+        $("#submitButton").click(function() {
+            var apiKey = $('#apiKey').val().trim();
+            var dataType = $('#dataType').val();
+            var codigoMunicipio = $('#codigoMunicipio').val().trim();
+            
+            // Validaciones
+            if (!apiKey) {
+                alert("Por favor, introduce una API Key válida de AEMET");
+                return;
+            }
+            
+            if (dataType === 'prediccion' && !codigoMunicipio) {
+                alert("Para predicciones, debes introducir un código de municipio");
+                return;
+            }
+            
+            // Guardar datos de conexión
+            tableau.connectionData = JSON.stringify({
+                "apiKey": apiKey,
+                "dataType": dataType,
+                "codigoMunicipio": codigoMunicipio
+            });
+            
+            // Establecer nombre de conexión
+            tableau.connectionName = "Datos AEMET - " + dataType;
+            
+            // Enviar
+            tableau.submit();
+        });
     });
 })();
